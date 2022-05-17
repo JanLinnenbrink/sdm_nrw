@@ -2,8 +2,10 @@ require(sf)
 require(fasterize)
 library(terra)
 
+# change path to the folder with your shapefiles
 path <- "C:/0_Msc_Loek/M7_Fernerkundung/shapes"
 
+# change fields according to the relevant fields in your shape files
 fields <- list("BAUMART", "ZIEL", "HECKENART", "NUTZUNG","OBJECTID")
 
 vc2ras <- function(path, resolution, fields) {
