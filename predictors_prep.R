@@ -1,7 +1,7 @@
 require(sf)
 require(fasterize)
 library(terra)
-
+require(raster)
 
 vc2ras <- function(path, resolution, fields) {
   env_vector_ls <- paste0(path, "/", list.files(path, pattern = "*.shp"))
