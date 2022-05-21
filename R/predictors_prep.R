@@ -1,6 +1,6 @@
 require(sf)
 require(fasterize)
-library(terra)
+require(terra)
 require(raster)
 
 vc2ras <- function(path, resolution, fields) {
