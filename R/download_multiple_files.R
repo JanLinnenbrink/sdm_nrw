@@ -31,7 +31,7 @@ loadmras <- function(path_wd, path_csv, url, format, out_name) {
     
     ras <- list()
     for (i in seq_along(xf)) {
-      ras[[i]] <- raster(path_z,xf[i])
+      ras[[i]] <- raster(paste0(path_z,xf[i]))
     }
     
     message("Merging raster layers...")
@@ -49,7 +49,7 @@ loadmras <- function(path_wd, path_csv, url, format, out_name) {
     
     ras <- list()
     for (i in seq_along(xf)) {
-      ras[[i]] <- raster(path_z,xf[i])
+      ras[[i]] <- raster(paste0(path_wd,xf[i]))
     }
     
     message("Merging raster layers...")
@@ -61,10 +61,23 @@ loadmras <- function(path_wd, path_csv, url, format, out_name) {
   
 }
 
-path_wd <- "C:/0_Msc_Loek/M7_Fernerkundung/ndom/"
-path_csv <- "C:/0_Msc_Loek/M7_Fernerkundung/ndom/ndom_nw.csv"
-url <- "https://www.opengeodata.nrw.de/produkte/geobasis/hm/ndom50_tiff/ndom50_tiff/"
-format <- ".tif"
-out_name <- "ndom"
+path_wd <- "C:/0_Msc_Loek/M7_Fernerkundung/"
+path_csv <- "C:/0_Msc_Loek/M7_Fernerkundung/dgm1_xyz.csv"
+url <- "https://www.opengeodata.nrw.de/produkte/geobasis/hm/dgm1_xyz/dgm1_xyz/"
+format <- ".xyz.gz"
+out_name <- "dgm"
 
-loadmras(path_wd, path_csv, url, format, out_name)  
+
+kachelname <- read.csv(path_csv, sep=";")$Kachelname
+url_tf <- paste0(url, kachelname, format)
+writeLines(url_tf, paste0(path_wd,"url_dgm.txt"))
+
+
+# PowerShell: wget -i url_dgm.txt
+
+path_out <- "D:/dgm/"
+ras <- lapply(paste0(path_out, list.files(path_out)), raster)
+ras_merged <- do.call(merge, ras)
+
+
+saveRDS(ras_merged, "dgm.RDS")
