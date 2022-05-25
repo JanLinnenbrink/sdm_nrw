@@ -1,6 +1,7 @@
 require(sf)
 require(raster)
 require(cluster)
+require(ggplot2)
 
 # load function wsl.ebc for environmental bias correction
 source(paste0(getwd(), "/R/wsl_ebc.R"))
@@ -35,9 +36,22 @@ occs_xy <- occs[,c("X31468.X", "X31468.Y")]
 
 occs_xy$x <- as.numeric(gsub(",", "", occs_xy$X31468.X))
 occs_xy$y <- as.numeric(gsub(",", "", occs_xy$X31468.Y))
+occs_xy$X31468.X <- NULL
+occs_xy$X31468.Y <- NULL
 
+occs_sf <- st_as_sf(occs_xy, coords = c("x","y"), crs = st_crs(31468))
 
+# map occurences
 
+germany <- getData("GADM", country = "Germany", level = 2) %>% 
+  st_as_sf() %>% 
+  st_transform(st_crs(31468))
+
+ocp <- ggplot() +
+  geom_sf(data=germany[germany$NAME_1=="Nordrhein-Westfalen",]) +
+  geom_sf(data=occs_sf, shape = 21, colour="blue4", size=1.4)
+  
+ggsave("occs_plot.png", ocp)
 
 # obs = data frame with 3 columns: x, y, sp.id
 # ras = predictors
@@ -62,7 +76,6 @@ target.files = files[grep("_obs_corrected_",files)]
 correct.obs = lapply(target.files, function(x) obs=read.table(paste0(getwd(),"/",x)))
 correct.obs = do.call("rbind",correct.obs)
 
-library(ggplot2)
 
 
 
