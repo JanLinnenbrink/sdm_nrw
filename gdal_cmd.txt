@@ -8,7 +8,7 @@ for /R "d:\dgm" %I in ("*.gz") do ( "%ProgramFiles%\7-Zip\7z.exe" x -y -o"%~dpI"
 gci -file | group extension | select name, count | sort count -Descending
 
 # delete 0Kb files
-for \r %F in (*) do if %~zF==0 del "%F"
+for /r %F in (*) do if %~zF==0 del "%F"
 
 # delete duplicates by file ending (already unzipped files)
 for %I in (d:\dgm\*.gz) do (if exist d:\dgm\%~nI del %I)
