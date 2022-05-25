@@ -41,22 +41,8 @@ occs_xy$X31468.Y <- NULL
 
 occs_sf <- st_as_sf(occs_xy, coords = c("x","y"), crs = st_crs(31468))
 
-<<<<<<< HEAD
-# map of occurences
 
-germany <- getData("GADM", country="Germany", level=2) %>% 
-  st_as_sf() %>% 
-  st_transform(st_crs(31468))
-
-ocp <- ggplot() + 
-  geom_sf(data=germany[germany$NAME_1 == "Nordrhein-Westfalen",]) +
-  geom_point(data=occs_xy, aes(x=x,y=y), colour = "blue4", shape=21, size=1.6) +
-  theme(axis.title = element_blank())
-
-ggsave("occurence_plot_zauneidechse.png",ocp)
-=======
 # map occurences
->>>>>>> e5da6bb02c5b2f3cbb26c18e20a1b00e27c5967d
 
 germany <- getData("GADM", country = "Germany", level = 2) %>% 
   st_as_sf() %>% 
@@ -90,13 +76,5 @@ files = list.files(getwd())
 target.files = files[grep("_obs_corrected_",files)]
 correct.obs = lapply(target.files, function(x) obs=read.table(paste0(getwd(),"/",x)))
 correct.obs = do.call("rbind",correct.obs)
-
-<<<<<<< HEAD
-
-=======
->>>>>>> e5da6bb02c5b2f3cbb26c18e20a1b00e27c5967d
-
-
-
 
 
