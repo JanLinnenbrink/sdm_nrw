@@ -1,0 +1,13 @@
+cd "C:\0_Msc_Loek\M7_Fernerkundung\sdm_nrw"
+
+git pull origin main (pull changes from github to local repository)
+
+git checkout jan (switch to your branch)
+
+git add "wsl_ebc.R" (what should be committed?) -A (all changes added)
+
+git commit -m "bla bla" (the files selected for committment will be committed) 
+
+git push (push committed changes to remote repository)
+
+git mv modelling.R connectivity.R R (move (multiple) files to new folder (R))
