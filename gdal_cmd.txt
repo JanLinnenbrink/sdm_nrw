@@ -2,7 +2,7 @@
 wget -i url_dgm.txt
 
 # unzip files (only dom)
-for /R "d:\dgm" %I in ("*.gz") do ( "%ProgramFiles(x86)%\7-Zip\7z.exe" x -y -o"%~dpI" "%~fI")
+for /R "d:\dgm" %I in ("*.gz") do ( "%ProgramFiles%\7-Zip\7z.exe" x -y -o"%~dpI" "%~fI")
 
 # summary statistics by file ending -> PowerShell
 gci -file | group extension | select name, count | sort count -Descending
