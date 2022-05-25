@@ -41,8 +41,6 @@ occs_xy$X31468.Y <- NULL
 
 occs_sf <- st_as_sf(occs_xy, coords = c("x","y"), crs = st_crs(31468))
 
-nd <- env_data[[1]] * 2
-
 # map occurences
 
 germany <- getData("GADM", country = "Germany", level = 2) %>% 
@@ -57,7 +55,6 @@ ggsave("occs_plot.png", ocp)
 
 
 # load env data
-
 env_data <- stack("")
 
 # obs = data frame with 3 columns: x, y, sp.id
@@ -66,7 +63,7 @@ env_data <- stack("")
 # sp.specific = TRUE --> Select corrected XY outputs in a species-specific manner
 # keep.bias = TRUE   --> Preserve initial observer bias of each species
 wsl.ebc(obs = occs_xy,
-        ras = rst[[1:5]],
+        ras = env_data,
         pportional = TRUE,
         plog = TRUE,
         nclust = 50,
