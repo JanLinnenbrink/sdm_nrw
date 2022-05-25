@@ -3,7 +3,7 @@ require(raster)
 require(cluster)
 
 # load function wsl.ebc for environmental bias correction
-source("C:/Users/janli/sciebo/FE_22_Citizen_Science/code/wsl_ebc.R")
+source(paste0(getwd(), "/R/wsl_ebc.R"))
 
 occs_prep <- function(path2occs,x,y, env_data) {
   occs <- read.csv(path2occs)
