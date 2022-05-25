@@ -42,4 +42,4 @@ dgm <- raster("C:/Users/janli/sciebo/FE_22_Citizen_Science/data/environmental_da
 env_data <- stack(env_data_vc[[1]], env_data_vc[[n]], ndom, dgm)
 names(env_data) <- c("d", "d", "ndom", "dgm")
 
-saveRDS(env_data, "env_data.RDS")
+writeRaster(env_data, "env_data.tif")

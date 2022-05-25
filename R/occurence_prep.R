@@ -41,6 +41,7 @@ occs_xy$X31468.Y <- NULL
 
 occs_sf <- st_as_sf(occs_xy, coords = c("x","y"), crs = st_crs(31468))
 
+nd <- env_data[[1]] * 2
 
 # map occurences
 
@@ -53,6 +54,11 @@ ocp <- ggplot() +
   geom_sf(data=occs_sf, shape = 21, colour="blue4", size=1.4)
   
 ggsave("occs_plot.png", ocp)
+
+
+# load env data
+
+env_data <- stack("")
 
 # obs = data frame with 3 columns: x, y, sp.id
 # ras = predictors
