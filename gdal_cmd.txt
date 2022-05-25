@@ -18,6 +18,7 @@ for %I in (d:\dgm\*.xyz) do (if exist d:\dgm_tif\%~nI.tif del %I)
 for %N in (d:\dgm\*.xyz) DO gdal_translate -a_srs EPSG:25832 -tr 5 5 %N d:\dgm_tif\%~nN.tif
 
 # merge rasters
+gdalbuildvrt mosaic_ndom.vrt D:\ndom_tif\*.tif
 gdalbuildvrt mosaic_dgm.vrt D:\dgm_tif\*.tif
 
 # change resolution (only for ndom)
