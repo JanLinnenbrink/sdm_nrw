@@ -1,6 +1,7 @@
 require(sf)
 require(raster)
 require(cluster)
+require(ggplot2)
 
 # load function wsl.ebc for environmental bias correction
 source(paste0(getwd(), "/R/wsl_ebc.R"))
@@ -35,8 +36,22 @@ occs_xy <- occs[,c("X31468.X", "X31468.Y")]
 
 occs_xy$x <- as.numeric(gsub(",", "", occs_xy$X31468.X))
 occs_xy$y <- as.numeric(gsub(",", "", occs_xy$X31468.Y))
+occs_xy$X31468.X <- NULL
+occs_xy$X31468.Y <- NULL
 
 
+# map of occurences
+
+germany <- getData("GADM", country="Germany", level=2) %>% 
+  st_as_sf() %>% 
+  st_transform(st_crs(31468))
+
+ocp <- ggplot() + 
+  geom_sf(data=germany[germany$NAME_1 == "Nordrhein-Westfalen",]) +
+  geom_point(data=occs_xy, aes(x=x,y=y), colour = "blue4", shape=21, size=1.6) +
+  theme(axis.title = element_blank())
+
+ggsave("occurence_plot_zauneidechse.png",ocp)
 
 
 # obs = data frame with 3 columns: x, y, sp.id
@@ -44,7 +59,7 @@ occs_xy$y <- as.numeric(gsub(",", "", occs_xy$X31468.Y))
 # Run EBC function with the log consensus
 # sp.specific = TRUE --> Select corrected XY outputs in a species-specific manner
 # keep.bias = TRUE   --> Preserve initial observer bias of each species
-wsl.ebc(obs = occs,
+wsl.ebc(obs = occs_xy,
         ras = rst[[1:5]],
         pportional = TRUE,
         plog = TRUE,
@@ -62,7 +77,7 @@ target.files = files[grep("_obs_corrected_",files)]
 correct.obs = lapply(target.files, function(x) obs=read.table(paste0(getwd(),"/",x)))
 correct.obs = do.call("rbind",correct.obs)
 
-library(ggplot2)
+
 
 
 
