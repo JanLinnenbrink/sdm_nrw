@@ -2,9 +2,9 @@
 wget -i url_dgm.txt
 
 # unzip files (only dom)
-for /R "d:\dgm" %I in ("*.gz") do ( "%ProgramFiles(x86)%\7-Zip\7z.exe" x -y -o"%~dpI" "%~fI")
+for /R "d:\dgm" %I in ("*.gz") do ( "%ProgramFiles%\7-Zip\7z.exe" x -y -o"%~dpI" "%~fI")
 
-# summary statistics by file ending
+# summary statistics by file ending -> PowerShell
 gci -file | group extension | select name, count | sort count -Descending
 
 # delete 0Kb files
@@ -12,11 +12,13 @@ for \r %F in (*) do if %~zF==0 del "%F"
 
 # delete duplicates by file ending (already unzipped files)
 for %I in (d:\dgm\*.gz) do (if exist d:\dgm\%~nI del %I)
+for %I in (d:\dgm\*.xyz) do (if exist d:\dgm_tif\%~nI.tif del %I)
 
 # xyz to tif (5m res)
 for %N in (d:\dgm\*.xyz) DO gdal_translate -a_srs EPSG:25832 -tr 5 5 %N d:\dgm_tif\%~nN.tif
 
 # merge rasters
+gdalbuildvrt mosaic_ndom.vrt D:\ndom_tif\*.tif
 gdalbuildvrt mosaic_dgm.vrt D:\dgm_tif\*.tif
 
 # change resolution (only for ndom)
