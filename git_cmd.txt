@@ -6,7 +6,7 @@ git checkout jan (switch to your branch)
 
 git add "wsl_ebc.R" (what should be committed?) -A (all changes added)
 
-git commit -m "bla bla" (the files selected for committment will be committed)
+git commit -m "bla bla" (the files selected for committment will be committed) 
 
 git push (push committed changes to remote repository)
 
