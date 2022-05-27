@@ -1,7 +1,7 @@
 # download files
 wget -i url_dgm.txt
 
-# unzip files (only dom)
+# unzip files (only dgm)
 for /R "d:\dgm" %I in ("*.gz") do ( "%ProgramFiles%\7-Zip\7z.exe" x -y -o"%~dpI" "%~fI")
 
 # summary statistics by file ending -> PowerShell
