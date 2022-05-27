@@ -25,4 +25,7 @@ gdalbuildvrt mosaic_dgm.vrt D:\dgm_tif\*.tif
 # gdalwarp -tr 5 5 -r average mosaic.vrt ndom_5.tif
 
 # translate .vrt to .tif
-gdal_translate -of GTiff -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" mosaic.vrt mosaic.tif
+gdal_translate -of GTiff -co "COMPRESS=JPEG" -co "TILED=YES" mosaic.vrt mosaic.tif
+
+
+gdal_translate -of GTiff -co "TILED=YES" -co BIGTIFF mosaic_dgm3.vrt mosaic_dgm3.tif
