@@ -28,4 +28,4 @@ gdalbuildvrt mosaic_dgm.vrt D:\dgm_tif\*.tif
 gdal_translate -of GTiff -co "COMPRESS=JPEG" -co "TILED=YES" mosaic.vrt mosaic.tif
 
 
-gdal_translate -of GTiff -co "TILED=YES" -co BIGTIFF mosaic_dgm3.vrt mosaic_dgm3.tif
+gdal_translate -of GTiff -co "TILED=YES" -co "BIGTIFF" mosaic_dgm_f.vrt mosaic_dgm_f.tif
