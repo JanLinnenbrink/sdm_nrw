@@ -29,3 +29,6 @@ gdal_translate -of GTiff -co "COMPRESS=JPEG" -co "TILED=YES" mosaic.vrt mosaic.t
 
 
 gdal_translate -of GTiff -co "TILED=YES" -co "BIGTIFF" mosaic_dgm_f.vrt mosaic_dgm_f.tif
+
+# calculate dom
+gdal_calc.py -A dgm_5.tif -B ndom_5.tif --outfile=dom_5.tif --calc="A+B"
