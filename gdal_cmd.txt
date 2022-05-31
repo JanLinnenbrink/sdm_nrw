@@ -32,3 +32,9 @@ gdal_translate -of GTiff -co "TILED=YES" -co "BIGTIFF" mosaic_dgm_f.vrt mosaic_d
 
 # calculate dom
 gdal_calc.py -A dgm_5.tif -B ndom_5.tif --outfile=dom_5.tif --calc="A+B"
+
+# calculate slope
+gdaldem slope dgm_5.tif slope_5.tif
+
+# calculate aspect
+gdaldem aspect dgm_5.tif aspect_5.tif
