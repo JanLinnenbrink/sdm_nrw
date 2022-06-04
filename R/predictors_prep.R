@@ -7,7 +7,7 @@ vc2ras <- function(path, resolution, fields) {
   env_vector_ls <- paste0(path, "/", list.files(path, pattern = "*.shp"))
   env_vector <- lapply(env_vector_ls, st_read)
   
-  raster_template <- rast(ext(env_vector[[1]]), resolution = 10, 
+  raster_template <- rast(ext(env_vector[[1]]), resolution = resolution, 
                           crs = st_crs(env_vector[[1]])$wkt)
   
   message("converting to spatvec")
@@ -26,20 +26,45 @@ vc2ras <- function(path, resolution, fields) {
 
 
 # change path to the folder with your shapefiles
-path <- "C:/0_Msc_Loek/M7_Fernerkundung/shapes"
+path <- "C:/0_Msc_Loek/M7_Fernerkundung/shapes/"
 
 # change fields according to the relevant fields in your shape files
-fields <- list("BAUMART", "ZIEL", "HECKENART", "NUTZUNG","OBJECTID")
+fields <- list("VEG", "Id", "Id", "OBJART_TXT","OBJART", "VEG")
 
 # resolution in meters
-resolution <- 10
+resolution <- 5
 
 env_data_vc <- vc2ras(path=path, resolution = resolution, fields = fields)
 
+names <- c("acker", "bahn", "gewaesser", "siedlungen", "strassen", "wald")
+
+names(env_data_vc) <- names
+
+
 ndom <- raster("C:/Users/janli/sciebo/FE_22_Citizen_Science/data/environmental_data/ndom_5.tif")
 dgm <- raster("C:/Users/janli/sciebo/FE_22_Citizen_Science/data/environmental_data/dgm_5.tif")
+aspect <- raster("C:/Users/janli/sciebo/FE_22_Citizen_Science/data/environmental_data/aspect_5.tif")
+slope <- raster("C:/Users/janli/sciebo/FE_22_Citizen_Science/data/environmental_data/slope_5.tif")
 
-env_data <- stack(env_data_vc[[1]], env_data_vc[[n]], ndom, dgm)
+lr <- list(ndom, dgm, aspect, slope)
+lrs <- lapply(lr,resample,env_data_vc)
+
+env_data <- stack(env_data_vc[[1]], env_data_vc[[2]],env_data_vc[[3]],env_data_vc[[4]],
+                  env_data_vc[[5]],env_data_vc[[6]], lrs[[1]], lrs[[2]], lrs[[3]], lrs[[4]])
 names(env_data) <- c("d", "d", "ndom", "dgm")
 
 writeRaster(env_data, "env_data.tif")
+
+
+
+
+##
+env_vector_ls <- paste0(path, "/", list.files(path, pattern = "*.shp"))
+env_vector <- lapply(env_vector_ls, st_read)
+
+raster_template <- rast(ext(env_vector[[1]]), resolution = resolution, 
+                        crs = st_crs(env_vector[[1]])$wkt)
+
+message("converting to spatvec")
+
+env_spatvec <- lapply(env_vector, terra::vect)

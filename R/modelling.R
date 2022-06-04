@@ -1,8 +1,7 @@
 library(flexsdm)
 library(caret)
 library(CAST)
-library()
-remotes::install_github("rvalavi/blockCV", dependencies = TRUE, force=TRUE)
+library(blockCV)
 
 
 # loading the package
