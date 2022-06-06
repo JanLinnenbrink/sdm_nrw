@@ -51,20 +51,17 @@ lrs <- lapply(lr,resample,env_data_vc)
 
 env_data <- stack(env_data_vc[[1]], env_data_vc[[2]],env_data_vc[[3]],env_data_vc[[4]],
                   env_data_vc[[5]],env_data_vc[[6]], lrs[[1]], lrs[[2]], lrs[[3]], lrs[[4]])
-names(env_data) <- c("d", "d", "ndom", "dgm")
 
-writeRaster(env_data, "env_data.tif")
+rivers <- env_data$gewaesser
+streets <- env_data$strassen
+urban <- env_data$siedlungen
 
+dist_rasl <- list(rivers, streets, urban)
+mapply(writeRaster, dist_rasl, paste0(path,c("rivers","streets","urban"), ".tif"))
 
+writeRaster(env_data, "env_data.grd", format = "raster")
+writeRaster()
 
+env_data <- rast("D:/env_data/env_data.grd")
 
-##
-env_vector_ls <- paste0(path, "/", list.files(path, pattern = "*.shp"))
-env_vector <- lapply(env_vector_ls, st_read)
-
-raster_template <- rast(ext(env_vector[[1]]), resolution = resolution, 
-                        crs = st_crs(env_vector[[1]])$wkt)
-
-message("converting to spatvec")
-
-env_spatvec <- lapply(env_vector, terra::vect)
+plot(rivers)
