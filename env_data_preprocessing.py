@@ -63,16 +63,16 @@ for task in [cmd3,cmd4,cmd5]:
 # clip distance rasters to study region
 gdal.Warp("streets_ds_cr.tif","streets_ds.tif",cutlineDSName = "nrw.shp", cropToCutline=True, dstNodata = np.nan)
 
-cmd6 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline streets_ds.tif C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/streets_cl.tif"
-cmd7 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline settlements_ds.tif C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/settlements_cl.tif"
-cmd8 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline rivers_ds.tif C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/rivers_cl.tif"
+cmd6 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline streets_ds.tif C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/streets_dist.tif"
+cmd7 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline settlements_ds.tif C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/settlements_dist.tif"
+cmd8 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline rivers_ds.tif C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/rivers_dist.tif"
 
 for task in [cmd6,cmd7,cmd8]:
     os.system(task)
 
 
 # move rasterized but not distance raster files to destination folder 
-fnames = glob.glob('wald*')+glob.glob('*bahn*')+glob.glob('*acker*')
+fnames = ["acker.tif","bahn_5.tif","wald.tif"]
 
 for file in fnames:
     path_now = Path(file).resolve()
