@@ -7,6 +7,7 @@ import numpy as np
 import subprocess
 import sys
 import glob
+from pathlib import Path
 
 
 # set working directory
@@ -68,3 +69,13 @@ cmd8 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline rivers_ds.tif C:/0_
 
 for task in [cmd6,cmd7,cmd8]:
     os.system(task)
+
+
+# move rasterized but not distance raster files to destination folder 
+fnames = glob.glob('wald*')+glob.glob('*bahn*')+glob.glob('*acker*')
+
+for file in fnames:
+    path_now = Path(file).resolve()
+    path_then = "C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/"+file
+    os.rename(path_now, path_then)
+          
