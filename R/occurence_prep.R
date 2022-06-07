@@ -33,21 +33,15 @@ occs_prep <- function(path2occs,x,y, env_data) {
   target_files <- files[grep("_obs_corrected_", files)]
   obs_correct <- lapply(target.files, function(x) obs=read.table(paste0(path2occs,"/",x)))
   obs_correct <- do.call("rbind", obs_correct)
-  
 }
 
-occs <- read.csv("C:/Users/janli/sciebo/FE_22_Citizen_Science/data/occurence_data/occurences.csv")
-occs_xy <- occs[,c("X31468.X", "X31468.Y")]
 
-occs_xy$x <- as.numeric(gsub(",", "", occs_xy$X31468.X))
-occs_xy$y <- as.numeric(gsub(",", "", occs_xy$X31468.Y))
-occs_xy$X31468.X <- NULL
-occs_xy$X31468.Y <- NULL
+setwd("D:/env_data/")
 
-occs_sf <- st_as_sf(occs_xy, coords = c("x","y"), crs = st_crs(31468))
+occs <- st_read("occs.shp")
+
 
 # map occurences
-
 germany <- getData("GADM", country = "Germany", level = 2) %>% 
   st_as_sf() %>% 
   st_transform(st_crs(31468))
@@ -59,13 +53,20 @@ st_write(nrw, "C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw.shp")
 
 ocp <- ggplot() +
   geom_sf(data=germany[germany$NAME_1=="Nordrhein-Westfalen",]) +
-  geom_sf(data=occs_sf, shape = 21, colour="blue4", size=1.4)
+  geom_sf(data=occs, shape = 21, colour="blue4", size=1.4)
   
 ggsave("occs_plot.png", ocp)
 
 
 # load env data
-env_data <- rast("D:/env_data/env_data.grd")
+files <- list.files(pattern = "*.tif$")
+rasters <- lapply(files, rast)
+names(rasters) <- list.files(pattern = "*.tif$")
+rasters$ndvi_sd <- terra::focal(rasters$ndvi_f.tif, fun = "sd", filename ="ndvi_sd.tif")
+
+raster_res <- lapply(rasters, resample, rasters$dgm_5.tif)
+
+env_data <- stack(raster_res)
 
 # obs = data frame with 3 columns: x, y, sp.id
 # ras = predictors

@@ -28,7 +28,6 @@ from fiona.crs import from_epsg
 import shutil
 import rasterio
 from rasterio.enums import Resampling
-from gdal import gdalconst
 
 
 # set working directory
@@ -169,3 +168,16 @@ ndvi_r = gdal.Warp("ndvi_r.tif", "mosaic_ndvi.tif",dstSRS = 'EPSG:25832')
 ndvi_g = gdal.Warp("ndvi_g.tif", "ndvi_r.tif", xRes=5,yRes=5)
 cmd10 = "gdalwarp -of GTiff -cutline C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw.shp -crop_to_cutline ndvi_g.tif ndvi_f.tif"
 os.system(cmd10)
+
+
+# calculate focal statistics (std of ndvi) ??
+ndvi = gdal.Open("ndvi_f.tif")
+nband = ndvi.GetRasterBand(1)
+narray = nband.ReadAsArray()
+narray[12000,12000]
+fstats = for cells in 
+
+
+from scipy.ndimage import generic_filter
+import numpy as np
+generic_filter(narray, np.std, size=3)
