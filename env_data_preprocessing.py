@@ -26,6 +26,9 @@ import pandas as pd
 from shapely.geometry import Polygon
 from fiona.crs import from_epsg
 import shutil
+import rasterio
+from rasterio.enums import Resampling
+from gdal import gdalconst
 
 
 # set working directory
@@ -115,3 +118,54 @@ os.mkdir("nrw_bbf")
 nrw_gdf.to_file("C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw_bbf/nrw_bb.shp")
 shutil.make_archive("nrw_bbz", 'zip', "nrw_bbf")
 
+# use google earth engine to calculate mean ndvi between 2015 and 2022 (june):
+# // Sentinel-2 Normalized Difference Vegetation Index (NDVI) script, written by Will Deadman (william.m.deadman@gmail.com)
+# var geometry = 
+#     /* color: #d63000 */
+#     /* shown: false */
+#     /* displayProperties: [
+#       {
+#         "type": "rectangle"
+#       }
+#     ] */
+#     ee.Geometry.Polygon(
+#         [[[5.86623, 50.32300],
+#           [5.866230282441835, 52.53145123393944],
+#           [9.461470891636198, 52.53145123393944],
+#           [9.461470891636198, 50.32300]]], null, false);
+          
+          
+# var S2_display = {bands: ['B4', 'B3', 'B2'], min: 0, max: 3000};
+# var ndvi_palette = 'FFFFFF, CE7E45, DF923D, F1B555, FCD163, 99B718, 74A901, 66A000, 529400, ' + '3E8601, 207401, 056201, 004C00, 023B01, 012E01, 011D01, 011301';
+# function addnd(input) {
+#   var nd = input.normalizedDifference(['B8', 'B4']).rename('ndvi');
+#   return input.addBands(nd);
+# }
+
+# // earlier S2 imagery
+
+# var S2_early = ee.ImageCollection("COPERNICUS/S2")
+#   .filterBounds(geometry)
+#   .filter(ee.Filter.calendarRange(2015,2022,'year'))
+#   .filter(ee.Filter.calendarRange(6,6,'month'))
+#   .filterMetadata('CLOUDY_PIXEL_PERCENTAGE', 'less_than', 10)
+#   .map(addnd);
+
+# print(S2_early);
+
+# var S2_mosaic_early = S2_early.median().clip(geometry);
+
+# Map.addLayer(S2_mosaic_early, S2_display, "S2 Image earlier",false);
+
+# var ndvi_early = S2_early.select('ndvi').median().clip(geometry);
+
+# Map.addLayer(ndvi_early, {min: -0.1, max: 1, palette: ndvi_palette}, 'NDVI earlier');
+
+
+# change crs / resolution of the ndvi-raster & crop it to nrw
+os.chdir('C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/')
+
+ndvi_r = gdal.Warp("ndvi_r.tif", "mosaic_ndvi.tif",dstSRS = 'EPSG:25832')
+ndvi_g = gdal.Warp("ndvi_g.tif", "ndvi_r.tif", xRes=5,yRes=5)
+cmd10 = "gdalwarp -of GTiff -cutline C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw.shp -crop_to_cutline ndvi_g.tif ndvi_f.tif"
+os.system(cmd10)
