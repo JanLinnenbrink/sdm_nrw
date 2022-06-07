@@ -1,13 +1,31 @@
-#Import gdal
 import imp
+from xml.dom.minidom import TypeInfo
 from osgeo import gdal
-from osgeo import ogr
+import fiona
 import os
 import numpy as np
 import subprocess
 import sys
 import glob
 from pathlib import Path
+import os
+import datetime
+from sentinelhub import (
+    MimeType,
+    CRS,
+    BBox,
+    SentinelHubRequest,
+    SentinelHubDownloadClient,
+    DataCollection,
+    bbox_to_dimensions,
+    DownloadRequest,
+    MosaickingOrder,
+)
+import geopandas
+import pandas as pd
+from shapely.geometry import Polygon
+from fiona.crs import from_epsg
+import shutil
 
 
 # set working directory
@@ -61,8 +79,6 @@ for task in [cmd3,cmd4,cmd5]:
 
 
 # clip distance rasters to study region
-gdal.Warp("streets_ds_cr.tif","streets_ds.tif",cutlineDSName = "nrw.shp", cropToCutline=True, dstNodata = np.nan)
-
 cmd6 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline streets_ds.tif C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/streets_dist.tif"
 cmd7 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline settlements_ds.tif C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/settlements_dist.tif"
 cmd8 = "gdalwarp -of GTiff -cutline nrw.shp -crop_to_cutline rivers_ds.tif C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/rivers_dist.tif"
@@ -79,3 +95,23 @@ for file in fnames:
     path_then = "C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/"+file
     os.rename(path_now, path_then)
           
+
+# download ndvi data
+# create bbox of the study area
+nrw = geopandas.read_file("C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw.shp")
+nrw = nrw.to_crs(epsg=4326)
+nrw.to_file("C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw_4326.shp")
+
+nrw_4326 = fiona.open("C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw_4326.shp")
+nrw_bb = nrw_4326.bounds
+coords = [(nrw_bb[0], nrw_bb[1]), (nrw_bb[0], nrw_bb[3]), (nrw_bb[2], nrw_bb[3]), (nrw_bb[2], nrw_bb[1])]
+poly = Polygon(coords)
+
+nrw_gdf = geopandas.GeoDataFrame()
+nrw_gdf.loc[0,'geometry'] = poly
+nrw_gdf.crs = from_epsg(4326)
+
+os.mkdir("nrw_bbf")
+nrw_gdf.to_file("C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw_bbf/nrw_bb.shp")
+shutil.make_archive("nrw_bbz", 'zip', "nrw_bbf")
+
