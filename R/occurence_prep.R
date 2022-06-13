@@ -110,6 +110,6 @@ ocp <- ggplot() +
   geom_sf(data=germany[germany$NAME_1=="Nordrhein-Westfalen",]) +
   geom_sf(data=occs, shape = 21, colour="blue4", size=1.4)
   
-ggsave("occs_plot.png", ocp)
+ggsave("C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/Feldgrille_plots/occs_plot.pdf", ocp)
 
 
