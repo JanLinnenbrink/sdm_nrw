@@ -170,6 +170,14 @@ cmd10 = "gdalwarp -of GTiff -cutline C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw.s
 os.system(cmd10)
 
 
+# crop to study area
+os.chdir('D:/env_data/resampled')
+inras = glob.glob("*.tif")
+
+for ras in inras:
+    subprocess.call(['gdalwarp', '-cutline', 'C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw_4326.shp', '-crop_to_cutline', '-dstalpha', ras, 'res'+ras, '-multi'])
+
+
 # calculate focal statistics (std of ndvi) ??
 ndvi = gdal.Open("ndvi_f.tif")
 nband = ndvi.GetRasterBand(1)
