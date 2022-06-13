@@ -2,6 +2,7 @@
 # Load necessary libraries 
 require(raster)
 require(cluster)
+require(bigmemory)
 
 wsl.ebc=function(obs=NULL,ras=NULL,pportional=TRUE,plog=TRUE,nclust=50,
                  sp.specific=TRUE,sp.cor=0.5,keep.bias=TRUE,filter=FALSE,path=NULL,...)
@@ -42,6 +43,18 @@ wsl.ebc=function(obs=NULL,ras=NULL,pportional=TRUE,plog=TRUE,nclust=50,
   cat("Step 1 --> CLARA algorithm processing...","\n")
   
   # Convert raster in the right CLARA format
+  r2bm <- function(from, filename="") {
+    b <- big.matrix(ncell(from), nlayers(from), backingfile=filename )
+    nc <- ncol(from)
+    tr <- blockSize(from)
+    for (i in 1:tr$n) {
+      start <- ((tr$row[i]-1) * nc) + 1
+      end <- start + (tr$nrows[i] * nc) - 1
+      b[start:end, ] <- getValues(from, row=tr$row[i], nrows=tr$nrows[i])
+    }
+    b
+  }
+  rasb=r2bm(ras, "ras_bg.dat")
   id.toReplace=complete.cases(ras[])
   toClara=ras[][id.toReplace,]
   
