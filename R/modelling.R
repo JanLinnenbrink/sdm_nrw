@@ -40,6 +40,9 @@ values(rlayer) <- 1 #all values to one
 writeRaster(env_pa, "D:/env_data/env_pa.tif", overwrite=TRUE)
 #env_pa <- rast("D:/env_data/env_pa.tif")
 
+
+plot(env_pa)
+
 # sample pseudo-absence data
 pa <- flexsdm::sample_pseudoabs(occs_xy, "x", "y", n=1000, 
                           method=c("random"),
