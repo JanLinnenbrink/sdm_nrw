@@ -178,6 +178,18 @@ for ras in inras:
     subprocess.call(['gdalwarp', '-cutline', 'C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw_4326.shp', '-crop_to_cutline', '-dstalpha', ras, 'res'+ras, '-multi'])
 
 
+# stack rasters
+ImageList = glob.glob("ras*.tif")  
+VRT = 'env_data_gdalstack.vrt'
+gdal.BuildVRT(VRT, ImageList, separate=True, callback=gdal.TermProgress_nocb)
+
+InputImage = gdal.Open(VRT, 0)  # open the VRT in read-only mode
+gdal.Translate('env_data_gdalstack.tif', InputImage, format='GTiff',
+               creationOptions=['COMPRESS:DEFLATE', 'TILED:YES'],
+               callback=gdal.TermProgress_nocb)
+del InputImage  # close the VRT
+
+
 # calculate focal statistics (std of ndvi) ??
 ndvi = gdal.Open("ndvi_f.tif")
 nband = ndvi.GetRasterBand(1)

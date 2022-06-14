@@ -72,7 +72,7 @@ occs_vect <- occs %>%
   st_transform(st_crs(env_data)) %>% 
   vect()
 
-
+spplot(env_data)
 # reclassify binary data (necessary due to resampling)
 m <- c(0,0,0, 0.1,255,1)
 rm <- matrix(m, ncol=3, byrow=TRUE)
