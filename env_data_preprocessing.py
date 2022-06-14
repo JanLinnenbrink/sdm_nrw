@@ -190,6 +190,8 @@ gdal.Translate('env_data_gdalstack.tif', InputImage, format='GTiff',
 del InputImage  # close the VRT
 
 
+
+
 # calculate focal statistics (std of ndvi) ??
 ndvi = gdal.Open("ndvi_f.tif")
 nband = ndvi.GetRasterBand(1)
