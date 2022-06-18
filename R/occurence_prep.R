@@ -2,13 +2,27 @@ require(sf)
 require(raster)
 require(ggplot2)
 library(terra)
-
+library(dplyr)
+library(dismo)
 
 # load env data & calculate focal statistics
-setwd("D:/env_data/")
+#setwd("D:/env_data/resampled_old") # eigentlich ohne letzten folder
+setwd("D:/env_data/") 
 
 files <- list.files(pattern = "*.tif$")
-#files <- files[files != "env_data.tif"]
+
+nrw <- germany[germany$NAME_1 == "Nordrhein-Westfalen",]%>% 
+  st_transform(st_crs(25832))
+nrw <- st_union(nrw)
+nrw_spat <- terra::vect(nrw)
+st_write(nrw, "C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw.shp")
+
+nrw <- st_read("C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw.shp")
+nrw <- vect(nrw)
+
+#remove <- c("env_data.tif", "env_data_masked.tif", "env_data_sr.tif",
+#            "env_pa.tif", "masked_env_data.tif", "rlayer.tif", "slope_5_res.tif")
+#files <- files[! files %in% remove]
 
 rasters <- lapply(files, rast)
 
@@ -27,6 +41,10 @@ for (i in seq_along(rasters)) {
 rasterfiles <- list.files("resampled/")
 env_data <- terra::rast(rasterfiles)
 
+terraOptions(tempdir = "D:/env_data/resampled_old")
+env_data <- terra::mask(env_data, nrw)
+
+terra::writeRaster(env_data, "env_data_masked1.tif")
 
 # load function wsl.ebc for environmental bias correction
 source(paste0(getwd(), "/wsl_ebc.R"))
@@ -65,46 +83,56 @@ occs <- st_read("occs.shp")
 
 
 # convert to vect & spatrast
-env_data <- rast("env_data_masked.tif")
-env_data_stack <- stack("env_data_masked.tif")
+# env_data <- rast("env_data_masked1.tif")
+
+
+
+# reclassify binary data (necessary due to resampling)
+m <- c(0,0,0, 0.1,255,1)
+rm <- matrix(m, ncol=3, byrow=TRUE)
+
+env_data$acker <- terra::classify(env_data$acker, rm, include.lowest=TRUE)
+env_data$bahn_5 <- terra::classify(env_data$bahn_5, rm, include.lowest=TRUE)
+env_data$wald <- terra::classify(env_data$wald, rm, include.lowest=TRUE)
+
+terra::writeRaster(env_data, "env_data_aktuell1.tif")
+
+env_data <- rast("env_data_aktuell1.tif")
 
 occs_vect <- occs %>% 
   st_transform(st_crs(env_data)) %>% 
   vect()
 
-spplot(env_data)
-# reclassify binary data (necessary due to resampling)
-m <- c(0,0,0, 0.1,255,1)
-rm <- matrix(m, ncol=3, byrow=TRUE)
-
-env_data$acker_res <- terra::classify(env_data$acker_res, rm, include.lowest=TRUE)
-env_data$bahn_5_res <- terra::classify(env_data$bahn_5_res, rm, include.lowest=TRUE)
-env_data$wald_res <- terra::classify(env_data$wald_res, rm, include.lowest=TRUE)
-
-env_data <- raster::mask(env_data_stack, nrw, "masked_env_data.tif")
-
-env_data <- stack("masked_env_data.tif")
-names(env_data) <- names(env_data_stack)
-
-#terra::writeRaster(env_data, "D:/env_data/env_data.tif", overwrite=TRUE)
 
 train_dat <- terra::extract(env_data, occs_vect)[, names(env_data)]
-raster::extract(env_data_stack, occs)
 train_dat$type <- factor("presence")
 
-saveRDS(train_dat, "C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/train_dat.rds")
+saveRDS(train_dat, "C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/train_dat_wobg.rds")
+train_dat <- readRDS("C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/train_dat_wobg.rds")
 
+set.seed(1)
+bg <- spatSample(env_data$acker, 5000, "random")
+
+bg <- dismo::randomPoints(raster(env_data[[1]]), 5000)
+bg_vect <- vect(bg, type = "points", crs = terra::crs(env_data))
+
+bg_dat <- terra::extract(env_data, bg_vect)[, names(env_data)]
+bg_dat$type <-  factor("background")
+
+train_dat_c <- rbind(train_dat, bg_dat)
+
+saveRDS(train_dat_c, "C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/train_data.rds")
+terra::writeVector(bg_vect, "bg_vect.shp")
+
+
+ggplot(train_dat_c) +
+  geom_density(aes(x=aspect_5, colour = type)) 
 
 # map occurences
 germany <- getData("GADM", country = "Germany", level = 2) %>% 
   st_as_sf() %>% 
   st_transform(st_crs(31468))
 
-nrw <- germany[germany$NAME_1 == "Nordrhein-Westfalen",]%>% 
-  st_transform(st_crs(25832))
-nrw <- st_union(nrw)
-nrw_spat <- terra::vect(nrw)
-st_write(nrw, "C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw.shp")
 
 ocp <- ggplot() +
   geom_sf(data=germany[germany$NAME_1=="Nordrhein-Westfalen",]) +

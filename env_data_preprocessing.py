@@ -174,6 +174,8 @@ os.system(cmd10)
 os.chdir('D:/env_data/resampled')
 inras = glob.glob("*.tif")
 
+inras = ['streets_dist_res.tif', 'wald_res.tif']
+
 for ras in inras:
     subprocess.call(['gdalwarp', '-cutline', 'C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw_4326.shp', '-crop_to_cutline', '-dstalpha', ras, 'res'+ras, '-multi'])
 
