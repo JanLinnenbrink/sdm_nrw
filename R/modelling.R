@@ -90,14 +90,16 @@ plot_ffs(model_ffs,plotType="selected")
 sel_vars <- model_ffs$selectedvars
 
 rfpred <- predict(model_ffs$finalModel, env_data[sel_vars],
-                  type = "prob", cores = detectCores()-1)
+                  type = "prob", cores = detectCores()-1,
+                  na.rm = TRUE,
+                  filename = "D:/sdm_results/prediction.tif")
 
 library(doParallel) 
 library(parallel)
 cl <- makeCluster(detectCores()-1)
 registerDoParallel(cl)
 
-aoa <- aoa(env_data[sel_vars],model_ffs,cl=cl) # wenn Ohne Parallelprozessierung: CL rausnehmen!
+aoa <- aoa(env_data[sel_vars],model_ffs,cl=cl) 
 writeRaster(aoa,"aoa.grd")
 
 # to do: raster of observer density + sample pseudo-absences?
