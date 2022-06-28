@@ -7,119 +7,112 @@ library(sf)
 library(dplyr)
 library(purrr)
 
+
 library(mlr3spatial) # @github
 library(mlr3spatiotempcv) # @github
 library(mlr3learners)
-library(ranger)
-
-
-# calculate pseudo-absences
-train_dat <- readRDS("C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/train_dat.rds")
-env_data_sr <- terra::rast("D:/env_data/env_data_sr.tif")
-nrw <- st_read("C:/0_Msc_Loek/M7_Fernerkundung/shapes/nrw.shp")
-occs <- st_read("D:/env_data/occs.shp")
-
-occs_xy <- occs %>%
-  mutate(x=unlist(map(.$geometry,1)), y = unlist(map(.$geometry,2))) %>% 
-  select(x,y) %>% 
-  st_drop_geometry() %>% 
-  as.data.frame()
-
-env_pa <- terra::aggregate(env_data_sr, 10)
-
-rm(env_data_sr); rm(occs)
-
-
-
-plot(occs_xy$x, occs_xy$y)
-plot(pa$x,pa$y, col="red")
-
-rlayer <- env_pa[[1]] 
-values(rlayer) <- 1 #all values to one
-
-writeRaster(env_pa, "D:/env_data/env_pa.tif", overwrite=TRUE)
-#env_pa <- rast("D:/env_data/env_pa.tif")
-
-
-plot(env_pa)
-
-# sample pseudo-absence data
-pa <- flexsdm::sample_pseudoabs(occs_xy, "x", "y", n=1000, 
-                          method=c("random"),
-                          rlayer=rlayer)
-
-##
-# loading the package
-library(randomForest)
-
-# convert the response to factor for producing class relative likelihood
-training$occ <- as.factor(training$occ)
-
-prNum <- as.numeric(table(training$occ)["1"]) # number of presences
-
-# the sample size in each class; the same as presence number
-smpsize <- c("0" = prNum, "1" = prNum)
-
-
-rf_downsampled <- randomForest(formula = occ ~., 
-                              data = training, 
-                              ntree = 1000, 
-                              sampsize = smpsize,
-                              replace = TRUE)
-
-rfpred <- predict(rf_downsampled, testing_env, type = "prob")
-
-plot(rf_downsample, main = "RF down-sampled")
-
-
-###
-#train learner
-task_train = as_task_classif(point_vector, id = "sites_muenster", target = "class")
-
-learner = lrn("classif.ranger", importance.mode = "impurity")
-
-resampling = rsmp("sptcv_cstf", folds = 3, stratify = TRUE)
-rr = resample(task_train, learner, resampling)
-rr$aggregate()
-
-learner$train(task_train)
-
-learner$model
-
-task_predict = as_task_classif(stack, id = "sentinel_muenster", target = "class", task_train = task_train)
-future::plan("multisession", workers = 4)
-learner$parallel_predict = TRUE
-
-raster_muenster = predict_spatial(task_predict, learner, chunksize = 10L, filename = "raster_muenster.tif")
-
 library(mlr3fselect)
-
-#spatial ffs
-instance = fselect(
-  method = "sequential", #ffs
-  task =  tsk("diplodia"),
-  learner = lrn("classif.rpart"),
-  resampling = rsmp("spcv_coords"),
-  measure = msr("classif.ce"),
-  batch_size = 5
-)
-
-instance$result
-
-# Hyperparameter Tuning.
-
-
 library(mlr3tuning)
 library(mlr3tuningspaces) # @github
+library(ranger)
+library(randomForest)
+library(dplyr)
 
-instance = tune(
-  method = "random_search",
-  task = tsk("diplodia"),
-  learner = lts(lrn("classif.rpart")),
-  resampling = rsmp("spcv_coords"),
-  measure = msr("classif.ce"),
-  term_evals = 10
-)
+source(paste0(getwd(), "/wsl_ebc.R"))
 
-# best performing hyperparameter configuration
-instance$result
+
+# occurence filtering
+occs <- st_read("d:/env_data/occs.shp") %>% st_transform(st_crs(env_data[[1]]))
+env_data <- rast("d:/env_data/env_data_aktuell1.tif")
+path_out <- "C:/0_Msc_Loek/M7_Fernerkundung/"
+
+
+occs_xy <- as.data.frame(st_coordinates(occs))
+  
+wsl.ebc(obs = occs_xy,
+          ras = stack(env_data),
+          pportional = TRUE,
+          plog = TRUE,
+          nclust = 5,
+          sp.specific = FALSE,
+          filter = TRUE,
+          keep.bias = FALSE,
+          path = "C:/0_Msc_Loek/M7_Fernerkundung")
+  
+files <- list.files("C:/0_Msc_Loek/M7_Fernerkundung")
+target_files <- files[grep("_obs_corrected_", files)]
+obs_correct <- lapply(target.files, function(x) obs=read.table(paste0(path_out,"/",x)))
+obs_correct <- do.call("rbind", obs_correct)
+
+
+#occs_prep(occurences_sf = occs, env_data = env_data, 
+#          path_out = "C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/occurence_data")
+
+train_dat <- readRDS("C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/train_data_new.rds")
+train_dat <- train_dat[complete.cases(train_dat),]
+
+library(caret)
+library(CAST)
+library(ROSE)
+
+id <- as.data.frame(train_dat[["id"]])
+
+
+bg <- train_dat[train_dat$type == "background",]
+occ <- train_dat[train_dat$type == "presence",]
+
+
+bg_sample <- bg[sample(nrow(bg), nrow(occ)),]
+
+train_dat <- rbind(bg_sample, occ)
+
+
+trainids <- CreateSpacetimeFolds(train_dat,spacevar="id",class="type",k=4)
+
+ctrl <- trainControl(method="cv",
+                       index=trainids$index)
+
+preds <- names(train_dat[!names(train_dat) %in% c("type", "id")])
+
+model_ffs <- CAST::ffs(predictors = train_dat[names(train_dat) %in% preds],
+                       response = train_dat$type,
+                       method="rf",
+                       metric = "Kappa",
+                       ntree=50,
+                       tuneGrid=data.frame("mtry"=2:10),  
+                       trControl=trainControl(method="cv",index=trainids$index))
+
+save(model_ffs,file="ffsmodel.RData") 
+
+plot_ffs(model_ffs)
+plot_ffs(model_ffs,plotType="selected")
+
+sel_vars <- model_ffs$selectedvars
+
+rfpred <- predict(model_ffs$finalModel, env_data[sel_vars],
+                  type = "prob", cores = detectCores()-1)
+
+library(doParallel) 
+library(parallel)
+cl <- makeCluster(detectCores()-1)
+registerDoParallel(cl)
+
+aoa <- aoa(env_data[sel_vars],model_ffs,cl=cl) # wenn Ohne Parallelprozessierung: CL rausnehmen!
+writeRaster(aoa,"aoa.grd")
+
+# to do: raster of observer density + sample pseudo-absences?
+
+library(raster)
+library(terra)
+env_data$acker <- as.factor(env_data$acker)
+levels(env_data$acker) <- c("no_cultiv", "cultiv")
+env_data$bahn_5 <- as.factor(env_data$bahn_5)
+levels(env_data$bahn_5) <- c("no_railw", "railw")
+env_data$wald <- as.factor(env_data$wald)
+levels(env_data$wald) <- c("no_forest", "forest")
+
+
+terra::writeRaster(env_data, "D:/env_data.tif")
+
+
+
