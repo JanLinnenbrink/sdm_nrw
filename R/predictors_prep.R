@@ -2,6 +2,9 @@ require(sf)
 require(fasterize)
 require(terra)
 require(raster)
+library(future)
+
+setwd("C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw")
 
 vc2ras <- function(path, resolution, fields) {
   env_vector_ls <- paste0(path, "/", list.files(path, pattern = "*.shp"))
@@ -23,6 +26,55 @@ vc2ras <- function(path, resolution, fields) {
   
   return(stack(lapply(ras_ls, raster)))
 }
+
+env_vector_ls <- paste0(path, "/", list.files(path, pattern = "*.shp"))
+env_vector <- lapply(env_vector_ls, st_read)
+env_vector <- env_vector[c(1,5,6)]
+
+env_spatvec <- lapply(env_vector, terra::vect)
+env_spatvec[[1]]$id <- 1:nrow(env_spatvec[[1]])
+env_spatvec[[2]]$id <- 1:nrow(env_spatvec[[2]])
+env_spatvec[[3]]$id <- 1:nrow(env_spatvec[[3]])
+
+raster_template <- rast(ext(env_vector[[1]]), resolution = 5, 
+                        crs = st_crs(env_vector[[1]])$wkt)
+
+ras_ls <- list()
+for(i in seq_along(env_vector)) {ras_ls[[i]]=terra::rasterize(env_spatvec[[i]],raster_template,field="id")}
+
+urban <- ras_ls[[2]]
+m <- c(0,0,0, 0.1,999999999,1)
+rm <- matrix(m, ncol=3, byrow=TRUE)
+
+ras_ls[[2]] <- terra::classify(ras_ls[[2]], rm, include.lowest=TRUE)
+ras_ls[[3]] <- terra::classify(ras_ls[[3]], rm, include.lowest=TRUE)
+
+
+names <- c("rivers", "urban", "streets")
+
+rasterf <- list.files(pattern="*.tif")
+rsu <- rast(rasterf)
+
+plan(multisession, workers=3)
+
+dist_ras <-lapply(as.list(rsu),raster::distance)
+
+dist1 <- distance(rsu[[1]])
+
+dist_ras <- lapply(as.list(rsu), function(x) terra::distance(x))
+
+mapply(writeRaster, dist_ras, paste0(path,c("rivers_dist","streets_dist","urban_dist"), ".tif"))
+
+
+dist_ras <- lapply(ras_ls, terra::distance)
+
+mapply(function(x,y) writeRaster(x, paste0(y,".tif")), x=ras_ls,y=names)
+
+
+
+
+
+
 
 
 # change path to the folder with your shapefiles
@@ -60,7 +112,7 @@ dist_rasl <- list(rivers, streets, urban)
 mapply(writeRaster, dist_rasl, paste0(path,c("rivers","streets","urban"), ".tif"))
 
 writeRaster(env_data, "env_data.grd", format = "raster")
-writeRaster()
+
 
 env_data <- rast("D:/env_data/env_data.grd")
 

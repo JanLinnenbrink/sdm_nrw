@@ -5,7 +5,7 @@ library(terra)
 library(dplyr)
 
 
-setwd("D:/env_data/")
+setwd("C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/dlm50_EPSG25832_Shape")
 
 
 nrw <- germany[germany$NAME_1 == "Nordrhein-Westfalen",]%>% 
@@ -93,5 +93,14 @@ terra::writeRaster(env_data, "env_data_aktuell1.tif")
 
 env_data <- rast("env_data_aktuell1.tif")
 
+env_data$acker <- as.factor(env_data$acker)
+levels(env_data$acker) <- c("no_cultiv", "cultiv")
+env_data$bahn_5 <- as.factor(env_data$bahn_5)
+levels(env_data$bahn_5) <- c("no_railw", "railw")
+env_data$wald <- as.factor(env_data$wald)
+levels(env_data$wald) <- c("no_forest", "forest")
+
+
+terra::writeRaster(env_data, "D:/env_data.tif", overwrite=TRUE)
 
 

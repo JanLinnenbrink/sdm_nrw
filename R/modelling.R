@@ -1,61 +1,32 @@
-library(flexsdm)
 library(caret)
 library(CAST)
-library(blockCV)
+library(NNDM)
 library(terra)
 library(sf)
 library(dplyr)
 library(purrr)
 
 
-library(mlr3spatial) # @github
-library(mlr3spatiotempcv) # @github
-library(mlr3learners)
-library(mlr3fselect)
-library(mlr3tuning)
-library(mlr3tuningspaces) # @github
-library(ranger)
-library(randomForest)
-library(dplyr)
+library("NNDM")
+library("caret")
+library("sp")
+library("sf")
+library("knitr")
+library("gstat")
+library("gridExtra")
 
-source(paste0(getwd(), "/wsl_ebc.R"))
+env_data <- rast("e:/sdm_nrw/env_data.tif")
 
-
-# occurence filtering
-occs <- st_read("d:/env_data/occs.shp") %>% st_transform(st_crs(env_data[[1]]))
-env_data <- rast("d:/env_data/env_data_aktuell1.tif")
-path_out <- "C:/0_Msc_Loek/M7_Fernerkundung/"
-
-
-occs_xy <- as.data.frame(st_coordinates(occs))
-  
-wsl.ebc(obs = occs_xy,
-          ras = stack(env_data),
-          pportional = TRUE,
-          plog = TRUE,
-          nclust = 5,
-          sp.specific = FALSE,
-          filter = TRUE,
-          keep.bias = FALSE,
-          path = "C:/0_Msc_Loek/M7_Fernerkundung")
-  
-files <- list.files("C:/0_Msc_Loek/M7_Fernerkundung")
-target_files <- files[grep("_obs_corrected_", files)]
-obs_correct <- lapply(target.files, function(x) obs=read.table(paste0(path_out,"/",x)))
-obs_correct <- do.call("rbind", obs_correct)
-
+occs <- st_read("occurences.gpkg") %>% st_transform(st_crs(env_data[[1]]))
+train_dat <- st_read("train_dat.gpkg")
 
 #occs_prep(occurences_sf = occs, env_data = env_data, 
 #          path_out = "C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/occurence_data")
 
-train_dat <- readRDS("C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/train_data_new.rds")
+#train_dat <- readRDS("C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/train_data_new.rds")
 train_dat <- train_dat[complete.cases(train_dat),]
 
-library(caret)
-library(CAST)
-library(ROSE)
-
-id <- as.data.frame(train_dat[["id"]])
+preds <- names(train_dat[!names(train_dat) %in% c("type", "id")])
 
 
 bg <- train_dat[train_dat$type == "background",]
@@ -66,21 +37,94 @@ bg_sample <- bg[sample(nrow(bg), nrow(occ)),]
 
 train_dat <- rbind(bg_sample, occ)
 
+# no occurences at railways
+train_dat$bahn_5 <- NULL
+
+train_subset <- train_dat[createDataPartition(train_dat$type,p=0.1)$Resample1,]
+featurePlot(train_subset[,c("ndvi_f","dgm_5","focal_sd","slope_5")],
+            factor(extr_subset$Label),plot="pairs",
+            auto.key = list(columns = 2))
+
+# train model
+
+library(future)
+
+library(doParallel)
+cl <- makePSOCKcluster(detectCores()-1)
+registerDoParallel(cl)
+stopCluster(cl)
+
+
+#######
+
+# Prediction grid
+meuse.grid <- st_as_sf(meuse.grid, coords = c("x", "y"), crs = 28992, remove = F)
+
+env_grid <- terra::as.points(env_data)
+
+
+# Fit model
+trainControl_LOO <- trainControl(method = "LOOCV", savePredictions = T)
+paramGrid <-  data.frame(mtry = 2)
+mod_LOO <- train(type ~ acker + aspect_5 + dgm_5 + focal_sd + ndom_5 + 
+                   ndvi_f + rivers_dist + settlements_dist + slope_5 + 
+                   streets_dist + wald,
+                 method = "rf",
+                 trControl = trainControl_LOO,
+                 tuneGrid = paramGrid, 
+                 data = train_dat,
+                 seed=12345)
+
+# Estimate variogram on the residual and return range
+train_dat$res <- train_dat$type - predict(mod_LOO, newdata=train_dat) # response is factor ! 
+empvar <- variogram(res~1, data = train_dat)
+fitvar <- fit.variogram(empvar, vgm(model="Sph", nugget = T))
+plot(empvar, fitvar, cutoff=1500, main = "Residual semi-variogram estimation")
+(resrange <- fitvar$range[2])
+
+# Compute NNDM indices
+(NNDM_indices <- nndm(meuse, meuse.grid, resrange, min_train = 0.5))
+#> nndm object
+#> Total number of points: 155
+#> Mean number of training points: 153.88
+#> Minimum number of training points: 150
+# Plot NNDM functions
+plot(NNDM_indices)
+
+# Evaluate RF model using NDM CV
+trainControl_NNDM <- trainControl(method = "cv", savePredictions = T,
+                                  index=NNDM_indices$indx_train,
+                                  indexOut=NNDM_indices$indx_test)
+mod_NNDM <- train(zinc ~ x + y + dist + ffreq + soil,
+                  method = "ranger",
+                  trControl = trainControl_NNDM,
+                  tuneGrid = paramGrid, 
+                  data = meuse, 
+                  seed=12345)
+
+
+
+########
+library(spatialsample)
+
+set.seed(1234)
+folds <- spatial_clustering_cv(occs, v = 5)
 
 trainids <- CreateSpacetimeFolds(train_dat,spacevar="id",class="type",k=4)
 
 ctrl <- trainControl(method="cv",
                        index=trainids$index)
 
-preds <- names(train_dat[!names(train_dat) %in% c("type", "id")])
 
-model_ffs <- CAST::ffs(predictors = train_dat[names(train_dat) %in% preds],
+model_ffs <- ffs(predictors = train_dat[names(train_dat) %in% preds],
                        response = train_dat$type,
                        method="rf",
                        metric = "Kappa",
                        ntree=50,
                        tuneGrid=data.frame("mtry"=2:10),  
                        trControl=trainControl(method="cv",index=trainids$index))
+
+stopCluster(cl)
 
 save(model_ffs,file="ffsmodel.RData") 
 
@@ -104,17 +148,7 @@ writeRaster(aoa,"aoa.grd")
 
 # to do: raster of observer density + sample pseudo-absences?
 
-library(raster)
-library(terra)
-env_data$acker <- as.factor(env_data$acker)
-levels(env_data$acker) <- c("no_cultiv", "cultiv")
-env_data$bahn_5 <- as.factor(env_data$bahn_5)
-levels(env_data$bahn_5) <- c("no_railw", "railw")
-env_data$wald <- as.factor(env_data$wald)
-levels(env_data$wald) <- c("no_forest", "forest")
 
-
-terra::writeRaster(env_data, "D:/env_data.tif")
 
 
 

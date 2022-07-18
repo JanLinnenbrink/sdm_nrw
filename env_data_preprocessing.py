@@ -31,7 +31,7 @@ from rasterio.enums import Resampling
 
 
 # set working directory
-os.chdir('C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/data/environmental_data/')
+os.chdir('C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/')
 
 
 # calculate slope and aspect
@@ -72,9 +72,9 @@ for file in glob.glob('*.shp'):
 
 
 # calculate distance from rivers etc.   
-cmd3 = "python gdal_proximity.py strassen.tif streets_ds.tif -distunits GEO"
-cmd4 = "python gdal_proximity.py siedlungen.tif settlements_ds.tif -distunits GEO"
-cmd5 = "python gdal_proximity.py gewaesser.tif rivers_ds.tif -distunits GEO"
+cmd3 = "python gdal_proximity.py streets.tif streets_ds.tif -distunits GEO -maxdist 99999999"
+cmd4 = "python gdal_proximity.py urban.tif settlements_ds.tif -distunits GEO -maxdist 99999999"
+cmd5 = "python gdal_proximity.py rivers.tif rivers_ds.tif -distunits GEO -maxdist 99999999"
 
 for task in [cmd3,cmd4,cmd5]:
     os.system(task)
