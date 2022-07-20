@@ -3,6 +3,7 @@ require(fasterize)
 require(terra)
 require(raster)
 library(future)
+library(rgdal)
 
 setwd("C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw")
 
@@ -53,9 +54,16 @@ ras_ls[[3]] <- terra::classify(ras_ls[[3]], rm, include.lowest=TRUE)
 names <- c("rivers", "urban", "streets")
 
 rasterf <- list.files(pattern="*.tif")
-rsu <- rast(rasterf)
+
+for (raster in rasterf) {
+  gdalDistance
+}
+
+rsu <- stack(rasterf)
 
 plan(multisession, workers=3)
+
+dist_ras <- lapply(as.list(rsu), raster::distance)
 
 dist_ras <-lapply(as.list(rsu),raster::distance)
 
