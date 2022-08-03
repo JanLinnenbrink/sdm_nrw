@@ -57,9 +57,15 @@ points <- rbind(occs_g,background_g)
 
 st_write(points, "E:/sdm_nrw/training_points.shp", append=FALSE)
 
+#points <- st_read("E:/sdm_nrw/training_points.shp")
 
-ggplot(points, aes(alpha = as.factor(pres), colour=as.factor(cl))) +
-  geom_sf()
+pnts_plot <- ggplot(points, aes(alpha = as.factor(pres), colour=as.factor(cl))) +
+  geom_sf() +
+  scale_alpha_discrete(labels = c("background", "presence"), name = "Type", 
+                       range = c(0.3,1)) +
+  scale_colour_discrete(name= "Cluster")
+
+ggsave("C:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/Feldgrille_plots/points.pdf", pnts_plot)
 
 
 trainDat <- data.frame(cl=points$cl, pres = points$pres,
@@ -103,3 +109,15 @@ writeRaster(predictors, "E:/sdm_nrw/predictors_aktuell.tif")
 model_ffs <- readRDS("E:/sdm_nrw/ffs_model")
 
 
+ndvi <- predictors[[1]]
+
+rasterVis::gplot(ndvi) +
+  geom_tile(aes(fill=ndvi$ndvi))
+
+myTheme <- rasterVis::magmaTheme()
+myTheme$panel.background$col = 'white' 
+
+plots <- rasterVis::levelplot(predictors,par.settings = myTheme,
+                              maxpixels=ncell(ndvi)*0.01)
+
+spplot(ndvi, maxpixels=ncell(ndvi)*0.2)

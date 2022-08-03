@@ -271,6 +271,12 @@ env_data <- rast(list(env_data, new))
 
 writeRaster(env_data, "e:/predictors.grd")
 
+
+
+
+
+
+### ab hier 
 predictors <-  rast("e:/predictors.tif")
 
 
