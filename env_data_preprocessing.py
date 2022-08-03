@@ -72,9 +72,9 @@ for file in glob.glob('*.shp'):
 
 
 # calculate distance from rivers etc.   
-cmd3 = "python gdal_proximity.py streets.tif streets_ds.tif -distunits GEO -maxdist 99999999"
-cmd4 = "python gdal_proximity.py urban.tif settlements_ds.tif -distunits GEO -maxdist 99999999"
-cmd5 = "python gdal_proximity.py rivers.tif rivers_ds.tif -distunits GEO -maxdist 99999999"
+cmd3 = "python gdal_proximity.py streets.tif streets_ds.tif -distunits GEO -maxdist 50283"
+cmd4 = "python gdal_proximity.py urban.tif settlements_ds.tif -distunits GEO -maxdist 50000"
+cmd5 = "python gdal_proximity.py rivers.tif rivers_ds.tif -distunits GEO -maxdist 50000"
 
 for task in [cmd3,cmd4,cmd5]:
     os.system(task)
