@@ -1,3 +1,5 @@
+.libPaths('/home/j/jlinnenb/r_packages/')
+
 library(CAST)
 library(caret)
 library(terra)
@@ -10,9 +12,9 @@ library(parallel)
 # it splits the raster in n tiles and loops over these tiles in parallel
 
 # specify path to files (scratch)
-path_in <- "/scratch/tmp/jlinnenb/sdm_nrw/out_temp/model_results/"
-path_out_temp <- "/scratch/tmp/jlinnenb/sdm_nrw/out_temp/"
-path_out <- "/scratch/tmp/jlinnenb/sdm_nrw/prediction_aoa/"
+path_in <- "e:/sdm_nrw/model_results/"
+path_out_temp <- "e:/sdm_nrw/out_temp/"
+path_out <- path_out_temp
 
 dir.create(path_out)
 
@@ -20,8 +22,11 @@ rasterOptions(tmpdir=path_out_temp)
 terraOptions(tempdir=path_out_temp)
 
 # load the predictors and the model
-predictors <- rast(paste0(path_in, "predictors_sel.tif"))
+predictors <- rast("e:/sdm_nrw/predictors_sel.tif") |> 
+  terra::crop(y=vect("C:/0_Msc_Loek/M7_Fernerkundung/data_sdm_nrw/extent_test.shp"))
+
 model <- readRDS(paste0(path_in, "ffs_model"))
+
 
 # specify the number of tiles (only square numbers, e.g. 1,4,9,16,25,36,49,64)
 ntiles <- 9
@@ -46,17 +51,22 @@ ug_tiles <- vect(ug_tiles)
 # partition the predictors in tiles
 ug_tiles_l <- terra::split(ug_tiles, "n")
 preds_tiled <- lapply(ug_tiles_l, terra::crop, x=predictors)
-preds_tiled <- lapply(preds_tiled, stack)
+
+preds_tiled <- lapply(rasterf, raster::stack)
 
 
 ### predict in parallel ###
-prediction <- mclapply(preds_tiled, raster::predict, model=model,
-                       mc.cores = ncores)
+prediction <- lapply(preds_tiled, function(x) {
+  raster::predict(x, model=model$finalModel,
+                  factors=list(forest=levels(x$forest),
+                               cultiv=levels(x$cultiv)),
+                  type = "prob")
+} )
 
 # merge the prediction
 prediction_rasterl <- lapply(prediction, function(x){rast(x)})
 prediction <- do.call(terra::merge, prediction_rasterl)
-  
+
 
 ### calculate the AOA in parallel ###
 
