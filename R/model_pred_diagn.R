@@ -196,6 +196,8 @@ nrw <- st_read("e:/sdm_nrw/nrw.shp")
 pred_merge <- rast( "c:/0_Msc_Loek/Z_Palma/results/predictions_prob.tif")
 prediction_log <- log10(pred_merge)
 prediction_sqrt <- sqrt(pred_merge)
+prediction_cloglog <- VGAM::cloglog(pred_merge)
+
 
 heatmap <- rast("c:/0_Msc_Loek/Z_Palma/results/heatmap.tif")
 htmp <- terra::as.points(heatmap) |> st_as_sf()
