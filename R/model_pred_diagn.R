@@ -89,23 +89,24 @@ custom_cv$instantiate(task, f = f)
 msr <- as.data.table(mlr_measures) 
 msr_prob <- msr[msr$predict_type == "prob", ]
 
-rr <- mlr3::resample(task, lrn, custom_cv, store_models = TRUE)
-(roc <- autoplot(rr, type= "roc"))
-
-lapply(c(1:nrow(msr_prob)), function(x) rr$aggregate(msr(msr_prob$key[[x]]))) |> 
+rr_res <- lapply(c(1:nrow(msr_prob)), function(x) rr$aggregate(msr(msr_prob$key[[x]]))) |> 
   unlist() |> 
   as.data.frame()
-  
 
-# spatial
-rcv = rsmp("spcv_coords", folds = 5)
-rcv$instantiate(task)
-rcv$score(msr("classif.auc"))
-rr <- resample(task, lrn, rcv, store_models = TRUE)
-autoplot(rr, type= "roc")
-rr$aggregate()
-mlr3spatiotempcv::autoplot(rr)
+ncol(rr_res)
 
+rr <- mlr3::resample(task, lrn, custom_cv, store_models = TRUE)
+(roc <- autoplot(rr, type= "roc"))
+roc_plot <- roc + annotate("text", x = 0.8, y = 0.2, 
+                           label = paste("mean AUC =",
+                                         round(rr$aggregate(measures=mlr_measures$get("classif.auc")),2))) 
+
+ggsave(paste0(path_out, "roc.pdf"), roc_plot)
+
+rr <- readRDS("c:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/rr")
+
+
+# model plots
 trainDat <- trainDat_cv |> subset(select = -x) |> subset(select=-y) |> subset(select=-cl)
 trainDat <- trainDat[complete.cases(trainDat),]
 x <- trainDat[which(names(trainDat) != "pres")]
