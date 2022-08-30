@@ -53,6 +53,7 @@ points <- rbind(occs_g,background_g)
 points$cl <- as.factor(points$cl)
 levels(points$cl) <- c(1:length(unique(points$cl)))
 #st_write(points, "e:/sdm_nrw/points_newcv.shp", append=FALSE)
+points <- st_read("e:/sdm_nrw/points_newcv.shp")
 
 points_df <- data.frame(x = as.data.frame(st_coordinates(points))$X,
                         y = as.data.frame(st_coordinates(points))$Y,
@@ -63,7 +64,7 @@ trainDat <- trainDat |> subset(select = -cl)
 trainDat_cv <- dplyr::inner_join(trainDat, points_df, by = c("x", "y"))
 
 #trainDat_cv <- trainDat_cv |> subset(select = -x) |> subset(select=-y)
-
+trainDat_cv$cl <- as.factor(trainDat_cv$cl)
 
 # train
 set.seed(100)
@@ -83,11 +84,13 @@ lrn$model
 ### resampling ###
 # manual
 custom_cv = rsmp("custom_cv")
-f = trainDat_cv$cl
+f = as.factor(trainDat_cv$cl)
 custom_cv$instantiate(task, f = f)
 
 msr <- as.data.table(mlr_measures) 
 msr_prob <- msr[msr$predict_type == "prob", ]
+
+rr <- mlr3::resample(task, lrn, custom_cv, store_models = TRUE)
 
 rr_res <- lapply(c(1:nrow(msr_prob)), function(x) rr$aggregate(msr(msr_prob$key[[x]]))) |> 
   unlist() |> 
@@ -95,7 +98,6 @@ rr_res <- lapply(c(1:nrow(msr_prob)), function(x) rr$aggregate(msr(msr_prob$key[
 
 ncol(rr_res)
 
-rr <- mlr3::resample(task, lrn, custom_cv, store_models = TRUE)
 (roc <- autoplot(rr, type= "roc"))
 roc_plot <- roc + annotate("text", x = 0.8, y = 0.2, 
                            label = paste("mean AUC =",
@@ -187,6 +189,33 @@ pred_merge <- do.call(terra::merge, pred_pres)
 writeRaster(pred_merge, "c:/0_Msc_Loek/Z_Palma/results/predictions_prob.tif")
 
 
+## AOA
+indices <- CreateSpacetimeFolds(trainDat,spacevar = "cl",clas="pres",k=length(unique(points$cl)))
+td <- as.data.frame(task$data())
+tr <- td[td$pres=="presence",]
+folds <-  as.numeric(trainDat_cv[trainDat_cv$pres=="presence", ]$cl)
+
+
+model_trainDI = trainDI(train = tr,
+                        weight= data.frame(t(lrn$importance())),
+                        variables = task$feature_names,
+                        folds = f
+  
+)
+model_trainDI$trainDI
+
+AOA <- aoa(predictors[[1]],
+                  train = tr,
+                  variables = task$feature_names,
+                  weight = data.frame(t(lrn$importance())),
+                  folds = folds,
+           trainDI = model_trainDI)
+
+
+rsmp_cv <- rsmp("cv", folds = 5L)$instantiate(task)
+rsmp_cv$instance[order(row_id)]$fold
+
+
 #saveRDS(lrn, "c:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/lrn")
 #saveRDS(rr, "c:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/rr")
 #saveRDS(task, "c:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/task")
@@ -194,7 +223,7 @@ writeRaster(pred_merge, "c:/0_Msc_Loek/Z_Palma/results/predictions_prob.tif")
 
 points <- st_read("e:/sdm_nrw/points_newcv.shp")
 nrw <- st_read("e:/sdm_nrw/nrw.shp")
-pred_merge <- rast( "c:/0_Msc_Loek/Z_Palma/results/predictions_prob.tif")
+pred_merge <- rast("c:/0_Msc_Loek/Z_Palma/results/predictions_prob.tif")
 prediction_log <- log10(pred_merge)
 prediction_sqrt <- sqrt(pred_merge)
 prediction_cloglog <- VGAM::cloglog(pred_merge)

@@ -1,4 +1,4 @@
-cv_estimation <- function(pts=pts_clustered, predictors=predictors_global,
+cv_tuned <- function(pts=pts_clustered, predictors=predictors_global,
                           maxn = 36) {
   
   
