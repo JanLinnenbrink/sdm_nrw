@@ -1,0 +1,40 @@
+# download files
+wget -i url_dgm.txt
+
+# unzip files (only dgm)
+for /R "d:\dgm" %I in ("*.gz") do ( "%ProgramFiles%\7-Zip\7z.exe" x -y -o"%~dpI" "%~fI")
+
+# summary statistics by file ending -> PowerShell
+gci -file | group extension | select name, count | sort count -Descending
+
+# delete 0Kb files
+for /r %F in (*) do if %~zF==0 del "%F"
+
+# delete duplicates by file ending (already unzipped files)
+for %I in (d:\dgm\*.gz) do (if exist d:\dgm\%~nI del %I)
+for %I in (d:\dgm\*.xyz) do (if exist d:\dgm_tif\%~nI.tif del %I)
+
+# xyz to tif (5m res)
+for %N in (d:\dgm\*.xyz) DO gdal_translate -a_srs EPSG:25832 -tr 5 5 %N d:\dgm_tif\%~nN.tif
+
+# merge rasters
+gdalbuildvrt mosaic_ndom.vrt D:\ndom_tif\*.tif
+gdalbuildvrt mosaic_dgm.vrt D:\dgm_tif\*.tif
+
+# change resolution (only for ndom)
+# gdalwarp -tr 5 5 -r average mosaic.vrt ndom_5.tif
+
+# translate .vrt to .tif
+gdal_translate -of GTiff -co "COMPRESS=JPEG" -co "TILED=YES" mosaic.vrt mosaic.tif
+
+
+gdal_translate -of GTiff -co "TILED=YES" -co "BIGTIFF" mosaic_dgm_f.vrt mosaic_dgm_f.tif
+
+# calculate dom
+gdal_calc.py -A dgm_5.tif -B ndom_5.tif --outfile=dom_5.tif --calc="A+B"
+
+# calculate slope
+gdaldem slope dgm_5.tif slope_5.tif
+
+# calculate aspect
+gdaldem aspect dgm_5.tif aspect_5.tif

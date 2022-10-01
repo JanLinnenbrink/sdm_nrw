@@ -34,6 +34,8 @@ trainDat$cultiv <- as.factor(trainDat$cultiv)
 
 # cross-validation
 cd <- readRDS("c:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/dist_new")
+
+length(unique(cd$points$n))
 points <- st_read("E:/sdm_nrw/training_points.shp")
 
 bg <- points[points$pres == 0, ]
@@ -107,9 +109,14 @@ ggsave(paste0(path_out, "roc.pdf"), roc_plot)
 
 rr <- readRDS("c:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/rr")
 
-
 # model plots
-trainDat <- trainDat_cv |> subset(select = -x) |> subset(select=-y) |> subset(select=-cl)
+library(dplyr)
+library(randomForest)
+
+lrn <- readRDS("c:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/lrn")
+task <- readRDS("c:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/task")
+
+trainDat <- trainDat |> subset(select = -x) |> subset(select=-y) 
 trainDat <- trainDat[complete.cases(trainDat),]
 x <- trainDat[which(names(trainDat) != "pres")]
 
@@ -128,8 +135,12 @@ custom_pl <- custom_pl + labs(title="tuned spatial block")
 ggsave(paste0(path_out, "cv_cl.pdf"), both_cv)
 
 # Precision/recall graph
+library(patchwork)
 effect = FeatureEffects$new(model)
-(effect_p <- plot(effect))
+(effect_p <- plot(effect)+
+    plot_annotation(
+      title = element_blank()) &
+    theme(text = element_text(size = 14)))
 
 
 imp = FeatureImp$new(model, loss = "ce")
@@ -141,12 +152,13 @@ imp$results$tmp <- "Feature Importance"
   geom_errorbar(size=0.75,width=.1, col = "#0072B2") +
     ylab("")+
     xlab("Feature Importance (loss: ce)")+
-    facet_grid(~tmp))
+    facet_grid(~tmp) +
+    theme(text = element_text(size = 14)))
 
 
 
 
-(diagn <- effect_p + vimp)
+diagn <- effect_p +   vimp 
 ggsave(paste0(path_out, "explanation.pdf"), diagn)
 
 ### prediction ###
@@ -224,6 +236,55 @@ rsmp_cv$instance[order(row_id)]$fold
 points <- st_read("e:/sdm_nrw/points_newcv.shp")
 nrw <- st_read("e:/sdm_nrw/nrw.shp")
 pred_merge <- rast("c:/0_Msc_Loek/Z_Palma/results/predictions_prob.tif")
+
+
+
+### independet validation ###
+
+ind_p <- readxl::read_excel("c:/0_Msc_Loek/M7_Fernerkundung/sdm_nrw/data/Gryllus_campestris_AK_Heuschrecken_NRW.xlsx")
+ind_p <- ind_p[!is.na(ind_p$`R-WERT (X-Wert)`),]
+ind_p$x = ind_p$`R-WERT (X-Wert)`
+ind_p$y = ind_p$`H-WERT (Y-Wert)`
+ind_p = ind_p[,c("ID", "Jahr", "x", "y")]
+ind_p = st_as_sf(ind_p, coords = c("x", "y"), crs = st_crs(31466)) |> 
+  st_transform(st_crs(pred_merge))
+
+
+ind_v <- terra::extract(pred_merge, ind_p)
+bg_v <- terra::extract(pred_merge, bg)
+bg_v$type <- "background"
+ind_v$type <- "presence"
+
+vd <- rbind(ind_v, bg_v)
+
+plot(st_geometry(ind_p))
+plot(pred_merge, add=TRUE)
+
+
+(vd_p <- ggplot(vd) +
+  geom_density(aes(x=presence, fill = type), alpha = 0.5 ) +
+  xlab("suitability") +
+    theme_bw() +
+  theme(legend.position = c(0.8,0.8),
+        text = element_text(size = 12)))
+vd_p$theme <- roc_plot$theme
+
+
+
+(roc <- autoplot(rr, type= "roc"))
+roc_plot <- roc + annotate("text", x = 0.8, y = 0.2, 
+                           label = paste("mean AUC =",
+                                         round(rr$aggregate(measures=mlr_measures$get("classif.auc")),2))) 
+
+library(egg)
+(val_pl <-egg::ggarrange(roc_plot, vd_p, nrow = 1, labels = c("a", "b")))
+
+ggsave(paste0(path_out, "val_pl1.pdf"), val_pl)
+
+
+
+### maps ###
+
 prediction_log <- log10(pred_merge)
 prediction_sqrt <- sqrt(pred_merge)
 prediction_cloglog <- VGAM::cloglog(pred_merge)

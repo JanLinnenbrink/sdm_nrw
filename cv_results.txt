@@ -1,6 +1,0 @@
-classif.ce = 0.16
-classif.auc = 0.86
-classif.sensitivity = 0.94
-classif.specificity = 0.54
-classif.acc = 0.84
-classif.prauc = 0.92
